@@ -110,13 +110,33 @@ tests/rewards_vault.ts              happy-path + invariant test
 Anchor.toml  Cargo.toml  package.json  tsconfig.json
 ```
 
-## Known follow-ups before mainnet
+## Test coverage (all green in CI)
 
-- Compile & run the test suite (never done here); fix any Anchor 0.30 API drift.
-- Add adversarial tests: non-operator deposit, self-referral, double-claim,
-  below-min-claim, withdraw by a non-owner/treasury, overflow at large volumes.
-- Decide `sync_treasury` policy — it assumes no outstanding user balances; either
-  restrict it to pre-launch reconciliation or drop it.
-- Consider a compute-budget check on `deposit_fee` (init_if_needed of two reward
-  accounts in one ix).
-- Security review of the direct-lamport payout path and rent math.
+**25/25 passing** on Anchor 1.1.2 + Agave stable (see `.github/workflows/anchor-ci.yml`).
+
+- Happy path: split 25/tier/remainder, claims pay exactly what's owed, no-referrer
+  slice → treasury, owner withdraws treasury, **solvency invariant** after deposits.
+- Access control: non-operator can't `deposit_fee`/`set_referrer`; non-owner can't
+  enable operators; a disabled operator can no longer deposit.
+- Referrer: self-referral impossible; write-once enforced; wrong/missing
+  `referrer_reward` account reverts.
+- Claims: double-claim reverts; below-`min_claim` reverts; nothing-owed reverts;
+  a signer cannot claim another user's rewards (PDA seeds bind reward to signer).
+- Treasury: random signer can't withdraw; can't exceed `treasury_owed`; can't
+  redirect to a non-treasury address; the treasury key may withdraw to itself.
+- Math: zero-value reverts; cashback clamped to 25%; repeated deposits accumulate
+  (init_if_needed never resets); large deposit uses u128 intermediates (no
+  overflow) and keeps the solvency invariant.
+- Ownership: 2-step transfer; only the pending owner accepts; old owner loses power.
+
+## Operational notes / follow-ups before mainnet
+
+- **Rent-exempt payouts.** Paying a cashback/referral SMALLER than the system rent
+  minimum (~0.0009 SOL) to a wallet that holds 0 lamports is rejected by Solana
+  ("insufficient funds for rent"). Real users' wallets already hold SOL, so this is
+  a non-issue in practice; set `min_claim` at or above the rent minimum to be safe.
+- `sync_treasury` assumes no outstanding user balances — restrict it to pre-launch
+  reconciliation, or drop it. It is owner-only.
+- These tests are thorough but are NOT a substitute for an independent professional
+  audit. For meaningful TVL, get one, and consider moving `owner` to a multisig via
+  `transfer_ownership` after deploy.
