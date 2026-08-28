@@ -51,6 +51,13 @@ jobs:
           avm use ${ANCHOR_VERSION}
           anchor --version
 
+      - name: Install surfpool (Anchor 1.x default test validator; cached)
+        run: |
+          if ! command -v surfpool >/dev/null 2>&1; then
+            cargo install surfpool-cli --locked
+          fi
+          surfpool --version
+
       - name: Provider wallet
         run: solana-keygen new --no-bip39-passphrase --force -o ~/.config/solana/id.json
 
