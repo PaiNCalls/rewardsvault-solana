@@ -1,0 +1,5 @@
+# Prefer dependency versions compatible with the package's rust-version (MSRV),
+# so lockfile generation on a newer host cargo still picks SBF-buildable crates
+# (no `edition2024`).
+[resolver]
+incompatible-rust-versions = "fallback"

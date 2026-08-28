@@ -3,6 +3,10 @@ name = "rewards_vault"
 version = "0.1.0"
 description = "On-chain split + custody of the bot's trading fee (Solana port of RewardsVault.sol)"
 edition = "2021"
+# Pin the MSRV to the Solana SBF toolchain's cargo (1.84) so MSRV-aware dependency
+# resolution never picks crates that require `edition2024` (needs Rust 1.85+),
+# which the SBF build cannot compile.
+rust-version = "1.84.0"
 
 [lib]
 crate-type = ["cdylib", "lib"]
