@@ -6,10 +6,10 @@ resolution = true
 skip-lint = false
 
 [programs.localnet]
-rewards_vault = "DsEViFM9Q86cZwsrkxD8Sj5MgadftasSe2gRY1dyHRbz"
+rewards_vault = "DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG"
 
 [programs.mainnet]
-rewards_vault = "DsEViFM9Q86cZwsrkxD8Sj5MgadftasSe2gRY1dyHRbz"
+rewards_vault = "DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG"
 
 [registry]
 url = "https://api.apr.dev"

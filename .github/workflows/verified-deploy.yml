@@ -1,0 +1,96 @@
+name: verified-deploy
+
+# Rebuilds the program with the REPRODUCIBLE (Docker) build, upgrades the
+# on-chain program to that exact bytecode, then registers the verified build so
+# Solscan shows "verified". Manual only.
+on:
+  workflow_dispatch:
+
+env:
+  PROGRAM_ID: DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG
+  REPO_URL: https://github.com/PaiNCalls/rewardsvault-solana
+
+jobs:
+  verified-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: verify-tools-v1
+
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install solana-verify
+        run: |
+          if ! command -v solana-verify >/dev/null 2>&1; then
+            cargo install solana-verify --locked || cargo install solana-verify
+          fi
+          solana-verify --version
+
+      - name: Write upgrade-authority keypair + point at mainnet
+        env:
+          KP: ${{ secrets.SOLANA_DEPLOY_KEYPAIR }}
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          mkdir -p ~/.config/solana
+          printf '%s' "$KP" > ~/.config/solana/id.json
+          chmod 600 ~/.config/solana/id.json
+          solana config set --url "$RPC" --keypair ~/.config/solana/id.json
+          echo "authority: $(solana address)  balance: $(solana balance)"
+
+      - name: Reproducible (Docker) build
+        run: |
+          solana-verify build --library-name rewards_vault
+          ls -la target/deploy/
+
+      - name: Upgrade the on-chain program to the reproducible bytecode
+        env:
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          solana program deploy target/deploy/rewards_vault.so \
+            --program-id "$PROGRAM_ID" \
+            --upgrade-authority ~/.config/solana/id.json \
+            --url "$RPC" \
+            --keypair ~/.config/solana/id.json
+
+      - name: Register the verified build (writes PDA with upgrade authority)
+        env:
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          yes | solana-verify verify-from-repo \
+            --url "$RPC" \
+            --program-id "$PROGRAM_ID" \
+            --library-name rewards_vault \
+            --keypair ~/.config/solana/id.json \
+            "$REPO_URL" || true
+
+      - name: Queue the remote (OtterSec) verification job
+        env:
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          UPLOADER="$(solana address)"
+          solana-verify remote submit-job \
+            --program-id "$PROGRAM_ID" \
+            --uploader "$UPLOADER" || \
+          solana-verify remote submit-job \
+            --url "$RPC" \
+            --program-id "$PROGRAM_ID" \
+            --uploader "$UPLOADER"
+
+      - name: Leftover balance
+        run: |
+          echo "authority leftover: $(solana balance)"

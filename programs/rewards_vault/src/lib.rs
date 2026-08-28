@@ -35,12 +35,12 @@
 //! There is no reentrancy in Solana's execution model (no synchronous callback
 //! into the program mid-instruction), but every handler still follows
 //! checks-effects-interactions. Unattributed SOL sent straight to the PDA simply
-//! over-collateralises the vault; `sync_treasury` folds it into `treasury_owed`.
+//! over-collateralises the vault and is never withdrawable — the safe failure mode.
 
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("DsEViFM9Q86cZwsrkxD8Sj5MgadftasSe2gRY1dyHRbz");
+declare_id!("DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG");
 
 const BPS_DENOMINATOR: u64 = 10_000;
 /// Referral is a flat 25% of the fee, never tier-dependent.
