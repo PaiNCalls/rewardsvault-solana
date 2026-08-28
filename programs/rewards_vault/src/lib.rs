@@ -291,31 +291,11 @@ pub mod rewards_vault {
         Ok(())
     }
 
-    /// Fold any unattributed lamports (SOL sent straight to the PDA) into the
-    /// treasury balance, restoring `lamports - rent == sum(owed)` exactly.
-    pub fn sync_treasury(ctx: Context<SyncTreasury>) -> Result<()> {
-        require_keys_eq!(ctx.accounts.owner.key(), ctx.accounts.config.owner, VaultError::NotOwner);
-        let info = ctx.accounts.config.to_account_info();
-        let rent = Rent::get()?.minimum_balance(info.data_len());
-        let lamports = info.lamports();
-        drop(info);
-        // Everything the vault currently owes to users is not enumerable on-chain,
-        // but treasury_owed + user balances == lamports - rent by the invariant, so
-        // any EXCESS over what we already track as owed can only be an unattributed
-        // deposit. We cannot see per-user sums here, so this only reconciles when
-        // called with the full picture off-chain; kept as owner-only for safety.
-        let config = &mut ctx.accounts.config;
-        let tracked_floor = rent.checked_add(config.treasury_owed).unwrap();
-        if lamports > tracked_floor {
-            // NOTE: this assumes no outstanding user balances; intended for use
-            // only before any user has been credited, or with off-chain accounting
-            // that has confirmed user owed == 0. Otherwise do NOT call.
-            let excess = lamports - tracked_floor;
-            config.treasury_owed = config.treasury_owed.checked_add(excess).unwrap();
-            emit!(TreasurySynced { amount: excess });
-        }
-        Ok(())
-    }
+    // NOTE: there is deliberately NO admin function that can move lamports the vault
+    // does not track as treasury_owed. An earlier `sync_treasury` could, if misused,
+    // fold user-owed balances into the treasury — a privilege footgun — so it was
+    // removed. Unattributed SOL sent straight to the PDA simply over-collateralises
+    // the vault and is never withdrawable, which is the safe failure mode.
 }
 
 /// Debit lamports from the program-owned `config` PDA to `to`, keeping the PDA
@@ -507,13 +487,6 @@ pub struct AcceptOwnership<'info> {
     pub new_owner: Signer<'info>,
 }
 
-#[derive(Accounts)]
-pub struct SyncTreasury<'info> {
-    #[account(mut, seeds = [CONFIG_SEED], bump = config.bump)]
-    pub config: Account<'info, Config>,
-    pub owner: Signer<'info>,
-}
-
 // ── Events ───────────────────────────────────────────────────────────────────
 #[event]
 pub struct FeeDeposited {
@@ -543,10 +516,6 @@ pub struct ReferralClaimed {
 #[event]
 pub struct TreasuryWithdrawn {
     pub to: Pubkey,
-    pub amount: u64,
-}
-#[event]
-pub struct TreasurySynced {
     pub amount: u64,
 }
 #[event]
