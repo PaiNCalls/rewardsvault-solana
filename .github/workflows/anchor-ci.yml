@@ -30,7 +30,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: anchor-${{ env.ANCHOR_VERSION }}-solana-${{ env.SOLANA_VERSION }}-rust179-${{ hashFiles('**/Cargo.toml') }}
+          key: toolchain-anchor${{ env.ANCHOR_VERSION }}-solana${{ env.SOLANA_VERSION }}-rust179
 
       - name: Install Solana CLI
         run: |
