@@ -154,7 +154,9 @@ pub mod rewards_vault {
         // Pull the fee into the vault (operator → config) BEFORE crediting owed.
         system_program::transfer(
             CpiContext::new(
-                ctx.accounts.system_program.to_account_info(),
+                // Anchor 1.x: CpiContext::new takes the program's Pubkey, not its
+                // AccountInfo. The transfer helper invokes with from+to only.
+                ctx.accounts.system_program.key(),
                 system_program::Transfer {
                     from: ctx.accounts.operator.to_account_info(),
                     to: ctx.accounts.config.to_account_info(),
