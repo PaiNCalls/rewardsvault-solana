@@ -1,0 +1,55 @@
+name: verify
+
+on:
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin
+            ~/.cargo/registry/index
+            ~/.cargo/registry/cache
+            ~/.cargo/git/db
+          key: verify-tools-v1
+
+      - name: Install Solana CLI (for signing)
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Install solana-verify
+        run: |
+          if ! command -v solana-verify >/dev/null 2>&1; then
+            cargo install solana-verify --locked || cargo install solana-verify
+          fi
+          solana-verify --version
+
+      - name: Write upgrade-authority keypair
+        env:
+          KP: ${{ secrets.SOLANA_DEPLOY_KEYPAIR }}
+        run: |
+          mkdir -p ~/.config/solana
+          printf '%s' "$KP" > ~/.config/solana/id.json
+          chmod 600 ~/.config/solana/id.json
+
+      - name: Verify from repo (remote / OtterSec registry)
+        env:
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          yes | solana-verify verify-from-repo \
+            --remote \
+            --url "$RPC" \
+            --program-id DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG \
+            --library-name rewards_vault \
+            --keypair ~/.config/solana/id.json \
+            https://github.com/PaiNCalls/rewardsvault-solana
