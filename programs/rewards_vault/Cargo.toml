@@ -21,4 +21,7 @@ anchor-lang = { version = "0.30.1", features = ["init-if-needed"] }
 
 # Pin transitive deps whose newest versions require `edition2024` (Rust 2024),
 # which the Solana 1.18 SBF toolchain (and host Rust 1.79) cannot build.
+# blake3 >=1.6 pulls constant_time_eq 0.4 -> ctutils 0.4 (edition2024); keep <1.6
+# so the whole chain stays on the edition-2021 line.
+blake3 = ">=1.5, <1.6"
 constant_time_eq = "=0.3.1"
