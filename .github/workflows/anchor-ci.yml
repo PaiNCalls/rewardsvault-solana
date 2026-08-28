@@ -14,8 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+      - name: Install Rust (pinned for Anchor 0.30.1)
+        uses: dtolnay/rust-toolchain@1.79.0
 
       - uses: actions/setup-node@v4
         with:
@@ -30,7 +30,7 @@ jobs:
             ~/.cargo/registry/cache
             ~/.cargo/git/db
             target
-          key: anchor-${{ env.ANCHOR_VERSION }}-solana-${{ env.SOLANA_VERSION }}-${{ hashFiles('**/Cargo.toml') }}
+          key: anchor-${{ env.ANCHOR_VERSION }}-solana-${{ env.SOLANA_VERSION }}-rust179-${{ hashFiles('**/Cargo.toml') }}
 
       - name: Install Solana CLI
         run: |
@@ -40,11 +40,9 @@ jobs:
       - name: Solana version
         run: solana --version
 
-      - name: Install Anchor (avm)
+      - name: Install Anchor CLI (direct, locked — skips avm)
         run: |
-          cargo install --git https://github.com/coral-xyz/anchor avm --tag v${ANCHOR_VERSION} --force
-          avm install ${ANCHOR_VERSION}
-          avm use ${ANCHOR_VERSION}
+          cargo install --git https://github.com/coral-xyz/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked --force
           anchor --version
 
       - name: Generate a local keypair + sync program id
