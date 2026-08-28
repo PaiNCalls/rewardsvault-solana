@@ -45,17 +45,20 @@ jobs:
           cargo install --git https://github.com/coral-xyz/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked --force
           anchor --version
 
-      - name: Generate a local keypair + sync program id
-        run: |
-          solana-keygen new --no-bip39-passphrase --force -o ~/.config/solana/id.json
-          anchor keys sync
-          echo "program id:" && anchor keys list
+      - name: Provider wallet
+        run: solana-keygen new --no-bip39-passphrase --force -o ~/.config/solana/id.json
 
       - name: Install node deps
         run: npm install
 
-      - name: anchor build
+      - name: anchor build (generates the program keypair)
         run: anchor build
 
-      - name: anchor test (spins a local validator)
-        run: anchor test
+      - name: Sync declared program id to the built keypair, then rebuild
+        run: |
+          anchor keys sync
+          anchor keys list
+          anchor build
+
+      - name: anchor test (deploy to a local validator + run the suite)
+        run: anchor test --skip-build

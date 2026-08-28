@@ -40,7 +40,7 @@
 use anchor_lang::prelude::*;
 use anchor_lang::system_program;
 
-declare_id!("Rewards1111111111111111111111111111111111111");
+declare_id!("DsEViFM9Q86cZwsrkxD8Sj5MgadftasSe2gRY1dyHRbz");
 
 const BPS_DENOMINATOR: u64 = 10_000;
 /// Referral is a flat 25% of the fee, never tier-dependent.
