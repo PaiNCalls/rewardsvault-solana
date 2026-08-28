@@ -5,8 +5,7 @@ on:
   workflow_dispatch:
 
 env:
-  SOLANA_VERSION: v1.18.26
-  ANCHOR_VERSION: 0.30.1
+  ANCHOR_VERSION: 1.1.2
 
 jobs:
   build-test:
@@ -14,7 +13,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Rust (host resolver — needs edition2024 support)
+      - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
 
       - uses: actions/setup-node@v4
@@ -29,22 +28,27 @@ jobs:
             ~/.cargo/registry/index
             ~/.cargo/registry/cache
             ~/.cargo/git/db
+            ~/.avm
             target
-          key: toolchain-anchor${{ env.ANCHOR_VERSION }}-solana${{ env.SOLANA_VERSION }}-rust179
+          key: modern-anchor${{ env.ANCHOR_VERSION }}-solana-stable-v3
 
-      - name: Install Solana CLI
+      - name: Install Solana CLI (Agave stable)
         run: |
-          sh -c "$(curl -sSfL https://release.anza.xyz/${SOLANA_VERSION}/install)"
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
           echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
 
       - name: Solana version
-        run: solana --version
-
-      - name: Install Anchor CLI (direct, locked — skips avm; cached across runs)
         run: |
-          if ! command -v anchor >/dev/null 2>&1; then
-            cargo install --git https://github.com/coral-xyz/anchor --tag v${ANCHOR_VERSION} anchor-cli --locked
+          export PATH="$HOME/.local/share/solana/install/active_release/bin:$PATH"
+          solana --version
+
+      - name: Install Anchor via avm (cached across runs)
+        run: |
+          if ! command -v avm >/dev/null 2>&1; then
+            cargo install --git https://github.com/solana-foundation/anchor avm --force
           fi
+          avm install ${ANCHOR_VERSION}
+          avm use ${ANCHOR_VERSION}
           anchor --version
 
       - name: Provider wallet
