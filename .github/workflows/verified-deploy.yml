@@ -70,7 +70,8 @@ jobs:
 
       - name: Reproducible (Docker) build
         run: |
-          solana-verify build --library-name rewards_vault
+          solana-verify build --library-name rewards_vault \
+            --base-image solanafoundation/solana-verifiable-build:4.0.3
           ls -la target/deploy/
 
       - name: Upgrade the on-chain program to the reproducible bytecode
@@ -91,6 +92,7 @@ jobs:
             --url "$RPC" \
             --program-id "$PROGRAM_ID" \
             --library-name rewards_vault \
+            --base-image solanafoundation/solana-verifiable-build:4.0.3 \
             --keypair ~/.config/solana/id.json \
             "$REPO_URL" || true
 
