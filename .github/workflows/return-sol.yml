@@ -1,0 +1,37 @@
+name: return-sol
+
+on:
+  workflow_dispatch:
+
+jobs:
+  return:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Solana CLI
+        run: |
+          sh -c "$(curl -sSfL https://release.anza.xyz/stable/install)"
+          echo "$HOME/.local/share/solana/install/active_release/bin" >> "$GITHUB_PATH"
+
+      - name: Write keypair + point at mainnet
+        env:
+          KP: ${{ secrets.SOLANA_DEPLOY_KEYPAIR }}
+          RPC: ${{ secrets.SOLANA_RPC_URL }}
+        run: |
+          mkdir -p ~/.config/solana
+          printf '%s' "$KP" > ~/.config/solana/id.json
+          chmod 600 ~/.config/solana/id.json
+          solana config set --url "$RPC" --keypair ~/.config/solana/id.json
+          echo "from: $(solana address)  balance: $(solana balance)"
+
+      - name: Send leftover to the treasury
+        run: |
+          DEST=366sLirZUpwnmKygmLG1PT6LqaAPhmvrxnEeANpZuC8z
+          BAL=$(solana balance --lamports | grep -oE '[0-9]+' | head -1)
+          SEND=$((BAL - 5000))   # leave 5000 lamports for the tx fee
+          AMT=$(node -e "console.log(($SEND/1e9).toFixed(9))")
+          echo "balance=$BAL lamports; sending $AMT SOL to $DEST"
+          solana transfer "$DEST" "$AMT" \
+            --allow-unfunded-recipient \
+            --keypair ~/.config/solana/id.json \
+            --fee-payer ~/.config/solana/id.json
+          echo "new deploy-wallet balance: $(solana balance)"
