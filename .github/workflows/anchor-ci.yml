@@ -51,11 +51,11 @@ jobs:
           avm use ${ANCHOR_VERSION}
           anchor --version
 
-      - name: Install surfpool (Anchor 1.x default test validator; cached)
+      - name: Install surfpool (Anchor 1.x test validator — prebuilt binary)
         run: |
-          if ! command -v surfpool >/dev/null 2>&1; then
-            cargo install surfpool-cli --locked
-          fi
+          curl -sSfL https://github.com/txtx/surfpool/releases/latest/download/surfpool-linux-x64.tar.gz -o /tmp/surfpool.tar.gz
+          tar xzf /tmp/surfpool.tar.gz -C /tmp
+          sudo install -m 0755 "$(find /tmp -maxdepth 2 -name surfpool -type f | head -1)" /usr/local/bin/surfpool
           surfpool --version
 
       - name: Provider wallet
