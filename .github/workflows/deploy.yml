@@ -82,4 +82,5 @@ jobs:
             npx ts-node -T -P tsconfig.json scripts/init.ts
 
       - name: Leftover balance
-        run: echo "deploy wallet leftover: $(solana balance)"
+        run: |
+          echo "deploy wallet leftover: $(solana balance)"
