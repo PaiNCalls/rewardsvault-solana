@@ -10,6 +10,9 @@ env:
   PROGRAM_ID: DSos54UeW6KKYN7oS6egEibNWxMRDxFYrUEnhVbys7oG
   REPO_URL: https://github.com/PaiNCalls/rewardsvault-solana
 
+permissions:
+  contents: write
+
 jobs:
   verified-deploy:
     runs-on: ubuntu-latest
@@ -18,6 +21,17 @@ jobs:
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
+
+      - name: Ensure a committed Cargo.lock (required for reproducible builds)
+        run: |
+          cargo generate-lockfile
+          if [ -n "$(git status --porcelain Cargo.lock)" ]; then
+            git config user.email "kaio.kl201833@gmail.com"
+            git config user.name "PaiNCalls"
+            git add Cargo.lock
+            git commit -m "chore: commit Cargo.lock for reproducible/verified builds"
+            git push
+          fi
 
       - name: Cache
         uses: actions/cache@v4
